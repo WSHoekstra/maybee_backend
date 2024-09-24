@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:15
+    container_name: db
+    environment:
+      POSTGRES_USER: maybee
+      POSTGRES_PASSWORD: maybee
+      POSTGRES_DB: maybee
+    ports:
+      - "5432:5432"
+    networks:
+      - mynetwork
+  backend:
+    image: maybee-backend
+    container_name: maybee-backend
+    depends_on:
+      - db
+    ports:
+      - "80:80"
+    environment:
+      DB_URI: "postgresql://maybee:maybee@db:5432"
+      LOGGING_LEVEL: "INFO"
+      SECRET_KEY: "secret_key"
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    driver: bridge
