@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.13.0rc1-slim
 
 # Set environment variables to prevent Python from writing .pyc files and to ensure output is not buffered.
 ENV PYTHONUNBUFFERED=1 \
