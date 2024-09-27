@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "maybee_backend"
-version = "0.1.0"
-description = ""
+version = "0.1.1"
+description = "Restful API for non-contextual multi armed bandits"
 authors = ["Walter Hoekstra"]
 readme = "README.md"
 
@@ -16,6 +16,7 @@ python-jose = "^3.3.0"
 passlib = "^1.7.4"
 pytest = "^8.3.3"
 bcrypt = "^4.2.0"
+requests = "^2.32.3"
 
 
 [tool.poetry.group.dev.dependencies]
