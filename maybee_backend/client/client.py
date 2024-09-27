@@ -15,7 +15,7 @@ class MaybeeClient():
     """
     Client for the Maybee API
     """
-    def __init__(self, username, password, host=default_host) -> None:
+    def __init__(self, username: str, password: str, host: str=default_host) -> None:
         if host == default_host:
             logging.info("Initializing Maybee client for localhost")
         self.host = host
@@ -60,7 +60,7 @@ class MaybeeClient():
         return [Environment.model_validate(entry) for entry in r.json()]
 
 
-    def get_arms(self, environment_id) -> List[Arm]:
+    def get_arms(self, environment_id: int) -> List[Arm]:
         r = requests.get(
             url=f"{self.host}/environments/{environment_id}/arms", 
             headers=self._get_headers_for_authorized_request()
@@ -69,7 +69,7 @@ class MaybeeClient():
         return [Arm.model_validate(entry) for entry in r.json()]
     
     
-    def get_actions(self, environment_id) -> List[Action]:
+    def get_actions(self, environment_id: int) -> List[Action]:
         r = requests.get(
             url=f"{self.host}/environments/{environment_id}/actions", 
             headers=self._get_headers_for_authorized_request()
@@ -78,7 +78,7 @@ class MaybeeClient():
         return [Action.model_validate(entry) for entry in r.json()]
     
 
-    def get_observations(self, environment_id) -> List[Observation]:
+    def get_observations(self, environment_id: int) -> List[Observation]:
         r = requests.get(
             url=f"{self.host}/environments/{environment_id}/arms", 
             headers=self._get_headers_for_authorized_request()
@@ -87,7 +87,7 @@ class MaybeeClient():
         return [Observation.model_validate(entry) for entry in r.json()]
     
 
-    def get_avg_rewards_per_arm(self, environment_id) -> List[AvgRewardsPerArm]:
+    def get_avg_rewards_per_arm(self, environment_id: int) -> List[AvgRewardsPerArm]:
         r = requests.get(
             url=f"{self.host}/environments/{environment_id}/arms/average_rewards", 
             headers=self._get_headers_for_authorized_request()
