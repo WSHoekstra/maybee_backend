@@ -47,6 +47,10 @@ class Environment(SQLModel, table=True):
         back_populates="environment", cascade_delete=True
     )
 
+    avg_rewards_per_arm: List["AvgRewardsPerArm"] = Relationship(
+        back_populates="environment", cascade_delete=True
+    )
+
 
 class BanditState(Enum):
     TESTMODE = "TESTMODE"
@@ -95,6 +99,10 @@ class Arm(SQLModel, table=True):
         back_populates="arm", cascade_delete=True
     )
 
+    avg_rewards_per_arm: List["AvgRewardsPerArm"] = Relationship(
+        back_populates="arm", cascade_delete=True
+    )
+
     def pull(
         self,
         session: Session,
@@ -117,26 +125,28 @@ class Arm(SQLModel, table=True):
             raise ValueError(
                 f"environment is a simulation environment, but population_p_success is undefined for arm with id {self.arm_id}"
             )
-        else:
-            reward = int(np.random.binomial(n=1, p=self.population_p_success))
+        
+        reward = int(np.random.binomial(n=1, p=self.population_p_success))
 
-            action = Action(
-                arm_id=self.arm_id,
-                environment_id=self.environment_id,
-                bandit_state=bandit_state.value,
-            )
-            session.add(action)
-            session.commit()
-            session.refresh(action)
+        action = Action(
+            arm_id=self.arm_id,
+            environment_id=self.environment_id,
+            bandit_state=bandit_state.value,
+        )
+        session.add(action)
+        session.commit()
+        session.refresh(action)
 
-            observation = Observation(
-                environment_id=self.environment_id,
-                arm_id=self.arm_id,
-                action_id=action.action_id,
-                reward=reward,
-            )
-            session.add(observation)
-            session.commit()
+        observation = Observation(
+            environment_id=self.environment_id,
+            arm_id=self.arm_id,
+            action_id=action.action_id,
+            reward=reward,
+        )
+        session.add(observation)
+        session.commit()
+
+        update_average_rewards_per_arm(session=session, environment_id=self.environment_id, arm_id=self.arm_id, n_new_observations=1, avg_reward_of_new_observations=reward)
 
 
 class Action(SQLModel, table=True):
@@ -183,11 +193,16 @@ class Observation(SQLModel, table=True):
     action: Action | None = Relationship(back_populates="observations")
 
 
-class AvgRewardsPerArm(SQLModel, table=False):
-    arm_id: int
-    arm_description: Optional[str]
+class AvgRewardsPerArm(SQLModel, table=True):
+    avg_rewards_per_arm_id: int | None = Field(default=None, primary_key=True)
+    environment_id: int | None = Field(default=None, foreign_key="environment.environment_id")
+    arm_id: int | None = Field(default=None, foreign_key="arm.arm_id")
     n_observations: Optional[int]
     avg_reward: Optional[float]
+
+    # relationships where this is the child
+    environment: Environment | None = Relationship(back_populates="avg_rewards_per_arm")
+    arm: Arm | None = Relationship(back_populates="avg_rewards_per_arm")
 
 
 class Bandit:
@@ -210,3 +225,45 @@ class Bandit:
 
     def choose_arm(self) -> Tuple[BanditState, int]:
         raise NotImplementedError
+
+
+def update_average_rewards_per_arm(
+    session: Session,
+    environment_id: int,
+    arm_id: int,
+    n_new_observations: int,
+    avg_reward_of_new_observations: float
+) -> AvgRewardsPerArm:
+    """
+    Given some amount of new observations with an average reward,
+    update the n_observations and average reward in AvgRewardsPerArm table
+    """
+    if not isinstance(n_new_observations, int):
+        raise ValueError(f"n_new_observations must be of type int, received type {type(n_new_observations)}")
+
+    if not n_new_observations > 0:
+        raise ValueError(f"n_new_observations must be > 0, received value {n_new_observations}")
+
+    if not isinstance(avg_reward_of_new_observations, float):
+        raise ValueError(f"avg_reward_of_new_observations has to be of type float, received type {type(avg_reward_of_new_observations)}")
+    
+    sql = select(AvgRewardsPerArm).where(AvgRewardsPerArm.environment_id == environment_id).where(AvgRewardsPerArm.arm_id == arm_id)
+    avg_rewards_per_arm = session.exec(sql).first()
+
+    # if the object doesnt exist in the db yet, create a new one
+    if not avg_rewards_per_arm:
+        avg_rewards_per_arm = AvgRewardsPerArm(environment_id=environment_id,
+                                               arm_id=arm_id,
+                                            n_observations=n_new_observations, 
+                                            avg_reward=avg_reward_of_new_observations)
+    else: # the object already exists
+        avg_rewards_per_arm.n_observations += n_new_observations
+        avg_rewards_per_arm.avg_reward = (
+            (avg_rewards_per_arm.avg_reward * (avg_rewards_per_arm.n_observations - n_new_observations)) + 
+            (avg_reward_of_new_observations * n_new_observations)
+        ) / avg_rewards_per_arm.n_observations
+    
+    session.add(avg_rewards_per_arm)
+    session.commit()
+    session.refresh(avg_rewards_per_arm)
+    return avg_rewards_per_arm

@@ -7,7 +7,7 @@ from maybee_backend.database import get_session
 import math
 from maybee_backend.bandits.ucb1 import UCB1Bandit
 from maybee_backend.models.core_models import BanditState, AvgRewardsPerArm
-
+from tests.statics import TEST_ENVIRONMENT_ID, TEST_ARM_ID
 
 def test_ucb1_bandit_initialization(session: Session = Depends(get_session)):
     bandit = UCB1Bandit(session=session, environment_id=1, epsilon=0.05)
@@ -17,17 +17,18 @@ def test_ucb1_bandit_initialization(session: Session = Depends(get_session)):
 
 
 def test_ucb1_bandit_choose_arm_not_applicable(session: Session = Depends(get_session)):
-    bandit = UCB1Bandit(session=session, environment_id=1, epsilon=0.05)
+    environment_id =1
+    bandit = UCB1Bandit(session=session, environment_id=environment_id, epsilon=0.05)
 
     mock_rewards = [
         AvgRewardsPerArm(
-            arm_id=1, avg_reward=0.5, arm_description="", n_observations=10
+            environment_id=TEST_ENVIRONMENT_ID, arm_id=1, avg_reward=0.5, arm_description="", n_observations=10
         ),
         AvgRewardsPerArm(
-            arm_id=2, avg_reward=0.7, arm_description="", n_observations=10
+            environment_id=TEST_ENVIRONMENT_ID, arm_id=2, avg_reward=0.7, arm_description="", n_observations=10
         ),
         AvgRewardsPerArm(
-            arm_id=3, avg_reward=0.3, arm_description="", n_observations=10
+            environment_id=TEST_ENVIRONMENT_ID, arm_id=3, avg_reward=0.3, arm_description="", n_observations=10
         ),
     ]
 

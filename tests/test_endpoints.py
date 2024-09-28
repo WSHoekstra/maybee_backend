@@ -2,97 +2,18 @@
 # -*- coding: utf-8 -*-
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session
 from pydantic import ValidationError
 
-from maybee_backend.models.core_models import Environment, Arm, Action
-from maybee_backend.models.user_models import User, UserEnvironmentLink
-from maybee_backend.api.routes import get_password_hash
-
-
-TEST_USER_USERNAME = "testuser"
-TEST_USER_FOR_USER_CREATION_ENDPOINT_TEST_USERNAME = "testuser2"
-TEST_ADMIN_USER_ID = 1
-TEST_ADMIN_USER_USERNAME = "testadmin"
-
-TEST_USER_PASSWORD = "testpassword"
-TEST_ENVIRONMENT_ID = 9999
-TEST_ARM_ID = 9999
-
-INVALID_TOKEN = "INVALID_TOKEN"
-
-TEST_USER_ID = 2
-username_field = "username"
-password_field = "password"
-
-
-@pytest.fixture(name="user")
-def user_fixture(session: Session):
-    user = User(
-        user_id=TEST_USER_ID,
-        username=TEST_USER_USERNAME,
-        password_hash=get_password_hash(TEST_USER_PASSWORD),
-        is_admin=False,
-    )
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-    yield user
-    session.delete(user)
-    session.commit()
-
-
-@pytest.fixture(name="environment")
-def environment_fixture(session: Session):
-    environment = Environment(environment_id=TEST_ENVIRONMENT_ID)
-    session.add(environment)
-    session.commit()
-    session.refresh(environment)
-    yield environment
-    session.delete(environment)
-    session.commit()
-
-
-@pytest.fixture(name="userenvironmentlink")
-def user_environment_link_fixture(session: Session):
-    user_environment_link = UserEnvironmentLink(environment_id=TEST_ENVIRONMENT_ID, user_id=TEST_USER_ID)
-    session.add(user_environment_link)
-    session.commit()
-    session.refresh(user_environment_link)
-    yield user_environment_link
-    session.delete(user_environment_link)
-    session.commit()
-
-
-@pytest.fixture(name="arm")
-def arm_fixture(session: Session):
-    arm = Arm(
-        arm_id=TEST_ARM_ID,
-        environment_id=TEST_ENVIRONMENT_ID
-    )
-    session.add(arm)
-    session.commit()
-    session.refresh(arm)
-    yield arm
-    session.delete(arm)
-    session.commit()
-
-
-@pytest.fixture(name="admin_user")
-def admin_user_fixture(session: Session):
-    user = User(
-        user_id=TEST_ADMIN_USER_ID,
-        username=TEST_ADMIN_USER_USERNAME,
-        password_hash=get_password_hash(TEST_USER_PASSWORD),
-        is_admin=True,
-    )
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-    yield user
-    session.delete(user)
-    session.commit()
-
+from maybee_backend.models.core_models import Action
+from tests.statics import (username_field, 
+                           password_field, 
+                           TEST_USER_FOR_USER_CREATION_ENDPOINT_TEST_USERNAME, 
+                           TEST_USER_PASSWORD, 
+                           TEST_USER_USERNAME, 
+                           TEST_ADMIN_USER_USERNAME, 
+                           TEST_ENVIRONMENT_ID, 
+                           TEST_ARM_ID, 
+                           INVALID_TOKEN)
 
 # Test health endpoint
 def test_health(client: TestClient):
@@ -102,7 +23,6 @@ def test_health(client: TestClient):
 
 
 # Test user registration
-@pytest.mark.usefixtures("session")
 def test_create_user(client: TestClient):
     response = client.post(
         "/users/register/",
@@ -123,7 +43,7 @@ def test_create_user(client: TestClient):
     ), f"Expected username '{TEST_USER_FOR_USER_CREATION_ENDPOINT_TEST_USERNAME}', but got: {response.json().get(username_field)}"
 
 
-@pytest.mark.usefixtures("client", "user")
+@pytest.mark.usefixtures("user")
 def test_get_auth_token(client: TestClient):
     response = client.post(
         "/users/token",
@@ -142,7 +62,7 @@ def get_auth_token(client: TestClient, username: str, password: str):
 
 
 # Test get environments (authenticated)
-@pytest.mark.usefixtures("client", "user")
+@pytest.mark.usefixtures("user")
 def test_get_environments_authenticated(client):
     token = get_auth_token(
         client=client, username=TEST_USER_USERNAME, password=TEST_USER_PASSWORD
@@ -155,7 +75,7 @@ def test_get_environments_authenticated(client):
 
 
 # Test create environment (as non-admin user)
-@pytest.mark.usefixtures("client", "user")
+@pytest.mark.usefixtures("user")
 def test_create_environment_non_admin(client):
     token = get_auth_token(
         client=client, username=TEST_USER_USERNAME, password=TEST_USER_PASSWORD
@@ -169,7 +89,7 @@ def test_create_environment_non_admin(client):
 
 
 # Test create environment (as admin user)
-@pytest.mark.usefixtures("client", "admin_user")
+@pytest.mark.usefixtures("admin_user")
 def test_create_environment_admin(client):
     token = get_auth_token(
         client=client, username=TEST_ADMIN_USER_USERNAME, password=TEST_USER_PASSWORD
@@ -183,7 +103,7 @@ def test_create_environment_admin(client):
 
 
 # Test update environment (as admin user)
-@pytest.mark.usefixtures("client", "admin_user", "environment")
+@pytest.mark.usefixtures("admin_user", "environment")
 def test_update_environment_admin(client, session):
     token = get_auth_token(
         client=client, username=TEST_ADMIN_USER_USERNAME, password=TEST_USER_PASSWORD
@@ -207,7 +127,7 @@ def test_update_environment_admin(client, session):
 
 # Test update environment (as non-admin user)
 
-@pytest.mark.usefixtures("client", "user", "environment")
+@pytest.mark.usefixtures("user", "environment")
 def test_update_environment_non_admin(client):
     token = get_auth_token(
         client=client, username=TEST_USER_USERNAME, password=TEST_USER_PASSWORD
@@ -220,7 +140,7 @@ def test_update_environment_non_admin(client):
     assert response.status_code == 401
 
 
-@pytest.mark.usefixtures("client", "user", "environment", "arm")
+@pytest.mark.usefixtures("user", "environment", "arm")
 def test_get_arms_authenticated(client):
     token = get_auth_token(
         client=client, username=TEST_USER_USERNAME, password=TEST_USER_PASSWORD
@@ -232,7 +152,7 @@ def test_get_arms_authenticated(client):
     assert isinstance(response.json(), list)
 
 
-@pytest.mark.usefixtures("client", "user", "environment", "arm")
+@pytest.mark.usefixtures("user", "environment", "arm")
 def test_get_arms_unauthenticated(client):
     token = INVALID_TOKEN
     response = client.get(
@@ -241,7 +161,7 @@ def test_get_arms_unauthenticated(client):
     assert response.status_code == 401
 
 
-@pytest.mark.usefixtures("client", "user", "environment", "arm")
+@pytest.mark.usefixtures("user", "environment", "arm")
 def test_get_arm_authenticated(client):
     token = get_auth_token(
         client=client, username=TEST_USER_USERNAME, password=TEST_USER_PASSWORD
@@ -252,7 +172,7 @@ def test_get_arm_authenticated(client):
     assert response.status_code == 200
 
 
-@pytest.mark.usefixtures("client", "user", "environment", "arm")
+@pytest.mark.usefixtures("user", "environment", "arm")
 def test_get_arm_unauthenticated(client):
     token = INVALID_TOKEN
     response = client.get(
@@ -269,7 +189,7 @@ def validate_action_data(data):
         return False, e.errors()
 
 
-@pytest.mark.usefixtures("client", "user", "environment", "userenvironmentlink", "arm")
+@pytest.mark.usefixtures("user", "environment", "userenvironmentlink", "arm", "avgrewardsperarm")
 def test_create_action(client):
     token = get_auth_token(
         client=client, username=TEST_USER_USERNAME, password=TEST_USER_PASSWORD
