@@ -1,0 +1,49 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10.5'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install project dependencies
+        run: poetry install
+
+      - name: Extract version from pyproject.toml
+        id: get_version
+        run: |
+          VERSION=$(poetry version -s)
+          echo "::set-output name=VERSION::$VERSION"
+
+      - name: Get commit messages
+        id: get_commits
+        run: |
+          COMMITS=$(git log -1 --pretty=format:"%s")
+          echo "::set-output name=COMMITS::$COMMITS"
+
+      - name: Create Release on GitHub
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ steps.get_version.outputs.VERSION }}
+          release_name: Release ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: true # TODO: adjust for v1.0.0 onwards
+          body: |
+            ### Changelog
+            ${{ steps.get_commits.outputs.COMMITS }}
