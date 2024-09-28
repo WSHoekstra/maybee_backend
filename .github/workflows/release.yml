@@ -26,8 +26,8 @@ jobs:
           VERSION=$(grep -Po '(?<=version = ")[^"]*' pyproject.toml)
           echo "Version: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-		  
-	  - name: Tag release with version
+
+      - name: Tag release with version
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
