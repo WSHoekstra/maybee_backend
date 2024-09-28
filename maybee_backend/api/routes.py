@@ -95,7 +95,7 @@ def create_access_token(
 
 
 def raise_error_if_user_doesnt_have_link_to_environment(
-    user_id, environment_id, session: Session = Depends(get_session)
+    user_id, environment_id, session: Session
 ):
     sql = select(UserEnvironmentLink).where(
         and_(
@@ -382,7 +382,7 @@ async def create_arm(
         _create_arm()
     else:
         raise_error_if_user_doesnt_have_link_to_environment(
-            user_id=current_user.user_id, environment_id=environment_id
+            user_id=current_user.user_id, environment_id=environment_id, session=session
         )
         _create_arm()
 
@@ -413,7 +413,7 @@ async def delete_arm(
     sql = select(Arm).where(Arm.arm_id == arm_id)
     arm = session.exec(sql).first()
     raise_error_if_user_doesnt_have_link_to_environment(
-        user_id=current_user.user_id, environment_id=arm.environment_id
+        user_id=current_user.user_id, environment_id=arm.environment_id, session=session
     )
     _delete_arm()
 
@@ -448,7 +448,7 @@ async def get_observations(
         _get_observations()
 
     raise_error_if_user_doesnt_have_link_to_environment(
-        user_id=current_user.user_id, environment_id=environment_id
+        user_id=current_user.user_id, environment_id=environment_id, session=session
     )
     return _get_observations()
 
@@ -468,7 +468,7 @@ async def get_average_rewards_per_arm(
     if current_user.is_admin:
         return query_average_rewards_per_arm(environment_id=environment_id)
     raise_error_if_user_doesnt_have_link_to_environment(
-        user_id=current_user.user_id, environment_id=environment_id
+        user_id=current_user.user_id, environment_id=environment_id, session=session
     )
     return query_average_rewards_per_arm(environment_id=environment_id)
 
@@ -494,7 +494,7 @@ async def get_actions(
     if current_user.is_admin:
         return _get_actions()
     raise_error_if_user_doesnt_have_link_to_environment(
-        user_id=current_user.user_id, environment_id=environment_id
+        user_id=current_user.user_id, environment_id=environment_id, session=session
     )
     return _get_actions()
 
@@ -535,7 +535,7 @@ async def act(
     if current_user.is_admin:
         return _act()
     raise_error_if_user_doesnt_have_link_to_environment(
-        user_id=current_user.user_id, environment_id=environment_id
+        user_id=current_user.user_id, environment_id=environment_id, session=session
     )
     return _act()
 
@@ -567,6 +567,6 @@ async def create_observation(
     if current_user.is_admin:
         return _create_observation()
     raise_error_if_user_doesnt_have_link_to_environment(
-        user_id=current_user.user_id, environment_id=environment_id
+        user_id=current_user.user_id, environment_id=environment_id, session=session
     )
     return _create_observation()

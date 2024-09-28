@@ -3,14 +3,16 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
+from pydantic import ValidationError
 
-from maybee_backend.models.core_models import Environment, Arm
-from maybee_backend.models.user_models import User
+from maybee_backend.models.core_models import Environment, Arm, Action
+from maybee_backend.models.user_models import User, UserEnvironmentLink
 from maybee_backend.api.routes import get_password_hash
 
 
 TEST_USER_USERNAME = "testuser"
 TEST_USER_FOR_USER_CREATION_ENDPOINT_TEST_USERNAME = "testuser2"
+TEST_ADMIN_USER_ID = 1
 TEST_ADMIN_USER_USERNAME = "testadmin"
 
 TEST_USER_PASSWORD = "testpassword"
@@ -19,6 +21,7 @@ TEST_ARM_ID = 9999
 
 INVALID_TOKEN = "INVALID_TOKEN"
 
+TEST_USER_ID = 2
 username_field = "username"
 password_field = "password"
 
@@ -26,6 +29,7 @@ password_field = "password"
 @pytest.fixture(name="user")
 def user_fixture(session: Session):
     user = User(
+        user_id=TEST_USER_ID,
         username=TEST_USER_USERNAME,
         password_hash=get_password_hash(TEST_USER_PASSWORD),
         is_admin=False,
@@ -49,6 +53,17 @@ def environment_fixture(session: Session):
     session.commit()
 
 
+@pytest.fixture(name="userenvironmentlink")
+def user_environment_link_fixture(session: Session):
+    user_environment_link = UserEnvironmentLink(environment_id=TEST_ENVIRONMENT_ID, user_id=TEST_USER_ID)
+    session.add(user_environment_link)
+    session.commit()
+    session.refresh(user_environment_link)
+    yield user_environment_link
+    session.delete(user_environment_link)
+    session.commit()
+
+
 @pytest.fixture(name="arm")
 def arm_fixture(session: Session):
     arm = Arm(
@@ -66,6 +81,7 @@ def arm_fixture(session: Session):
 @pytest.fixture(name="admin_user")
 def admin_user_fixture(session: Session):
     user = User(
+        user_id=TEST_ADMIN_USER_ID,
         username=TEST_ADMIN_USER_USERNAME,
         password_hash=get_password_hash(TEST_USER_PASSWORD),
         is_admin=True,
@@ -233,7 +249,6 @@ def test_get_arm_authenticated(client):
     response = client.get(
         f"/environments/{TEST_ENVIRONMENT_ID}/arms/{TEST_ARM_ID}", headers={"Authorization": f"Bearer {token}"}
     )
-    print(response.json())
     assert response.status_code == 200
 
 
@@ -243,5 +258,26 @@ def test_get_arm_unauthenticated(client):
     response = client.get(
         f"/environments/{TEST_ENVIRONMENT_ID}/arms/{TEST_ARM_ID}", headers={"Authorization": f"Bearer {token}"}
     )
-    print(response.json())
     assert response.status_code == 401
+
+
+def validate_action_data(data):
+    try:
+        action_instance = Action(**data)  # Attempt to create an instance
+        return True, action_instance
+    except ValidationError as e:
+        return False, e.errors()
+
+
+@pytest.mark.usefixtures("client", "user", "environment", "userenvironmentlink", "arm")
+def test_create_action(client):
+    token = get_auth_token(
+        client=client, username=TEST_USER_USERNAME, password=TEST_USER_PASSWORD
+    )
+    response = client.post(
+        f"/environments/{TEST_ENVIRONMENT_ID}/actions", headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 200
+    response_data = response.json()
+    is_valid, result = validate_action_data(response_data)
+    assert is_valid, f"Invalid action data: {result}"

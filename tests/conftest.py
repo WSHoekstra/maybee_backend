@@ -47,7 +47,7 @@ def override_get_session(monkeypatch):
     monkeypatch.setattr("maybee_backend.database.get_session", get_test_session)
 
 
-@pytest.fixture(name="session", scope="session", autouse=True)
+@pytest.fixture(name="session", scope="function", autouse=True)
 def session_fixture():
     config = TestingConfig()
     engine = create_engine(
