@@ -7,7 +7,7 @@ from maybee_backend.database import get_session
 import math
 from maybee_backend.bandits.ucb1 import UCB1Bandit
 from maybee_backend.models.core_models import BanditState, AvgRewardsPerArm
-from tests.statics import TEST_ENVIRONMENT_ID, TEST_ARM_ID
+from tests.statics import TEST_ENVIRONMENT_ID
 
 def test_ucb1_bandit_initialization(session: Session = Depends(get_session)):
     bandit = UCB1Bandit(session=session, environment_id=1, epsilon=0.05)

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pytest
-from fastapi import Depends
 from sqlmodel import select, Session
 from maybee_backend.models.core_models import update_average_rewards_per_arm
 from maybee_backend.models.core_models import AvgRewardsPerArm
