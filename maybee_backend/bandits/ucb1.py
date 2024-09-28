@@ -17,7 +17,9 @@ class UCB1Bandit(Bandit):
 
     def choose_arm(self) -> Tuple[BanditState, int]:
         avg_rewards_per_arm = get_average_rewards_per_arm(
-            self.environment_id, replace_null_rewards_with_zeros=True
+            session=self.session,
+            environment_id=self.environment_id, 
+            replace_null_rewards_with_zeros=True
         )
 
         if avg_rewards_per_arm == []:

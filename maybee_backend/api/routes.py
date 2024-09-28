@@ -520,7 +520,7 @@ async def act(
         bandit_classes = {"epsilon_greedy": EpsilonGreedyBandit}
         bandit_class = bandit_classes.get(environment.bandit_type, EpsilonGreedyBandit)
 
-        bandit = bandit_class(environment_id=environment_id)
+        bandit = bandit_class(environment_id=environment_id, session=session)
         bandit_state, arm_id = bandit.choose_arm()
         action = Action(
             environment_id=environment_id,
@@ -547,6 +547,7 @@ async def act(
 async def create_observation(
     environment_id: int,
     action_id: str,
+    action_id: int,
     reward: float,
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
