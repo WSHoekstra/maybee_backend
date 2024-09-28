@@ -2,9 +2,6 @@ name: Version Check
 
 on:
   pull_request:
-  push:
-    branches:
-      - main  # Specify the branch you want to check, typically 'main' or 'master'
 
 jobs:
   version-check:
