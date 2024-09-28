@@ -9,6 +9,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 
+
 from maybee_backend.models.core_models import (
     Environment,
     EnvironmentBanditConfig,
@@ -191,7 +192,7 @@ def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.post("/environments", tags=[])
+@router.post("/environments", response_model=Environment, tags=[])
 async def create_environment(
     environment_description=None,
     is_simulation_environment: Optional[bool] = False,
@@ -213,15 +214,14 @@ async def create_environment(
         )
 
         session.add(environment)
-        session.commit()
-        session.refresh(environment)
         user_environment_link = UserEnvironmentLink(
             environment_id=environment.environment_id,
             user_id=current_user.user_id,
         )
         session.add(user_environment_link)
         session.commit()
-        session.refresh(user_environment_link)
+        session.refresh(environment)
+        session.refresh(user_environment_link)        
         return environment
 
     if current_user.is_admin:
