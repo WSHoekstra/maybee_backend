@@ -520,7 +520,7 @@ async def act(
         bandit_classes = {"epsilon_greedy": EpsilonGreedyBandit}
         bandit_class = bandit_classes.get(environment.bandit_type, EpsilonGreedyBandit)
 
-        bandit = bandit_class(environment_id=environment_id)
+        bandit = bandit_class(environment_id=environment_id, session=session)
         bandit_state, arm_id = bandit.choose_arm()
         action = Action(
             environment_id=environment_id,

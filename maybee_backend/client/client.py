@@ -69,7 +69,21 @@ class MaybeeClient():
         return [Arm.model_validate(entry) for entry in r.json()]
     
     
+    def create_action(self, environment_id: int) -> Action:
+        """
+        Create a new Action. 
+        This action object contains the arm_id 
+        chosen by the bandit configured for the environment. 
+        """
+        r = requests.post(url=f"{self.host}/environments/{{environment_id}}/actions", 
+                          headers=self._get_headers_for_authorized_request())
+        r.raise_for_status()
+        return Action.model_validate(r.json())
+    
     def get_actions(self, environment_id: int) -> List[Action]:
+        """
+        Gets a log of the previously taken actions
+        """
         r = requests.get(
             url=f"{self.host}/environments/{environment_id}/actions", 
             headers=self._get_headers_for_authorized_request()
