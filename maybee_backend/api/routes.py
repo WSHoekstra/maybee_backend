@@ -16,6 +16,8 @@ from maybee_backend.models.core_models import (
     Action,
     Arm,
     Observation,
+    AvgRewardsPerArm,
+    update_average_rewards_per_arm
 )
 from maybee_backend.database import get_session
 from maybee_backend.models.get_average_rewards_per_arm import (
@@ -373,18 +375,26 @@ async def create_arm(
             arm_description=arm_description,
             population_p_success=population_p_success,
         )
+
         session.add(arm)
         session.commit()
         session.refresh(arm)
+
+        avg_rewards_per_arm = AvgRewardsPerArm(environment_id=environment_id,
+                                               arm_id=arm.arm_id,
+                                               n_observations=0,
+                                               avg_reward=None)
+        session.add(avg_rewards_per_arm)
+        session.commit()
         return arm
 
     if current_user.is_admin:
-        _create_arm()
+        return _create_arm()
     else:
         raise_error_if_user_doesnt_have_link_to_environment(
             user_id=current_user.user_id, environment_id=environment_id, session=session
         )
-        _create_arm()
+        return _create_arm()
 
 
 @router.delete("/environments/{environment_id}/arms/{arm_id}", tags=[])
@@ -466,11 +476,11 @@ async def get_average_rewards_per_arm(
     For a given environment, get the average rewards for each arm
     """
     if current_user.is_admin:
-        return query_average_rewards_per_arm(environment_id=environment_id)
+        return query_average_rewards_per_arm(session=session, environment_id=environment_id)
     raise_error_if_user_doesnt_have_link_to_environment(
         user_id=current_user.user_id, environment_id=environment_id, session=session
     )
-    return query_average_rewards_per_arm(environment_id=environment_id)
+    return query_average_rewards_per_arm(session=session, environment_id=environment_id)
 
 
 @router.get(
@@ -547,18 +557,20 @@ async def act(
 async def create_observation(
     environment_id: int,
     action_id: str,
+    arm_id: str,
     reward: float,
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
     """
-    Create an observation of the outcome of a given action.
+    Create an observation of the outcome of a given action and update the avg rewards table.
     """
 
     def _create_observation():
         observation = Observation(
-            environment_id=environment_id, action_id=action_id, reward=reward
+            environment_id=environment_id, action_id=action_id, reward=reward, arm_id=arm_id
         )
+        update_average_rewards_per_arm(session=session, environment_id=environment_id, arm_id=arm_id, n_new_observations=1, avg_reward_of_new_observations=reward)
         session.add(observation)
         session.commit()
         session.refresh(observation)
