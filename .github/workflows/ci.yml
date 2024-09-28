@@ -1,0 +1,39 @@
+name: Unit tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Check out the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Set up Python environment
+      - name: Set up Python 3.10.5
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10.5
+
+      # Install Poetry
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          export PATH="$HOME/.local/bin:$PATH"  # Add Poetry to PATH
+
+      # Install dependencies using Poetry
+      - name: Install dependencies
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"  # Ensure Poetry is in PATH
+          poetry install --no-interaction --no-ansi
+
+      # Run pytest
+      - name: Run tests with pytest
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"  # Ensure Poetry is in PATH
+          poetry run pytest
