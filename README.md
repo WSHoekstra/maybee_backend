@@ -81,9 +81,10 @@ This API implements the core concepts of MABs:
 - [x] Create python backend
 - [x] Implement epsilon-greedy, softmax, and UCB1 bandits
 - [x] Add unit tests
+- [x] Create python client library
 - [ ] Set up CRUD methods for all available entities.
 - [ ] Create React frontend
-- [ ] Create python client library
+
 
 See the [open issues](https://github.com/WSHoekstra/maybee_backend/issues) for a full list of proposed features (and known issues).
 
