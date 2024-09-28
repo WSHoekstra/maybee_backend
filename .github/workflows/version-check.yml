@@ -1,0 +1,46 @@
+name: Version Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main  # Specify the branch you want to check, typically 'main' or 'master'
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"  # Use your project's Python version
+
+      - name: Parse current and previous versions
+        id: version
+        run: |
+          # Extract the current version from pyproject.toml
+          current_version=$(grep -Po '(?<=version = ")[^"]*' pyproject.toml)
+          
+          # Compare with the latest commit in the main branch
+          git fetch origin main
+          previous_version=$(git show origin/main:pyproject.toml | grep -Po '(?<=version = ")[^"]*')
+
+          echo "Current version: $current_version"
+          echo "Previous version: $previous_version"
+
+          # Set output variables for future steps
+          echo "::set-output name=current_version::$current_version"
+          echo "::set-output name=previous_version::$previous_version"
+
+      - name: Ensure version bump
+        run: |
+          if [[ "${{ steps.version.outputs.current_version }}" == "${{ steps.version.outputs.previous_version }}" ]]; then
+            echo "Error: Version in pyproject.toml has not been bumped!"
+            exit 1
+          else
+            echo "Version bump detected. Proceeding..."
+          fi
