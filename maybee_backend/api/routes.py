@@ -547,7 +547,6 @@ async def act(
 async def create_observation(
     environment_id: int,
     action_id: str,
-    action_id: int,
     reward: float,
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
