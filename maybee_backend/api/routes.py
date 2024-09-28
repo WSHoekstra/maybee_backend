@@ -476,11 +476,11 @@ async def get_average_rewards_per_arm(
     For a given environment, get the average rewards for each arm
     """
     if current_user.is_admin:
-        return query_average_rewards_per_arm(environment_id=environment_id)
+        return query_average_rewards_per_arm(session=session, environment_id=environment_id)
     raise_error_if_user_doesnt_have_link_to_environment(
         user_id=current_user.user_id, environment_id=environment_id, session=session
     )
-    return query_average_rewards_per_arm(environment_id=environment_id)
+    return query_average_rewards_per_arm(session=session, environment_id=environment_id)
 
 
 @router.get(
