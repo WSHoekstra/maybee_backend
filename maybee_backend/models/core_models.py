@@ -191,6 +191,16 @@ class Observation(SQLModel, table=True):
     environment: Environment | None = Relationship(back_populates="observations")
     arm: Arm | None = Relationship(back_populates="observations")
     action: Action | None = Relationship(back_populates="observations")
+    
+
+class ObservationCreate(SQLModel, table=False):
+    environment_id: int | None = Field(
+        default=None, foreign_key="environment.environment_id"
+    )
+    arm_id: int | None = Field(default=None, foreign_key="arm.arm_id")
+    action_id: int | None = Field(default=None, foreign_key="action.action_id")
+    event_datetime: datetime.datetime = Field(default_factory=datetime.datetime.now)
+    reward: float
 
 
 class AvgRewardsPerArm(SQLModel, table=True):

@@ -9,14 +9,14 @@ from maybee_backend.config import get_config
 from maybee_backend.database import get_session
 from sqlmodel.pool import StaticPool
 from maybee_backend.api.routes import get_password_hash
-from maybee_backend.models.core_models import Environment, Arm, AvgRewardsPerArm
+from maybee_backend.models.core_models import Action, Environment, Arm, AvgRewardsPerArm, BanditState
 from maybee_backend.models.user_models import User, UserEnvironmentLink
 from tests.statics import (TEST_USER_ID, TEST_USER_USERNAME, TEST_USER_PASSWORD, TEST_ARM_ID, TEST_ENVIRONMENT_ID, TEST_ADMIN_USER_USERNAME, TEST_ADMIN_USER_ID)
+
 
 class TestingConfig:
     secret_key = "test_secret_key"
     db_uri = "sqlite:///:memory:?check_same_thread=False"
-
 
 
 def get_test_config():
@@ -144,6 +144,19 @@ def avg_rewards_per_arm_fixture(session: Session):
     session.delete(avg_rewards_per_arm)
     session.commit()
 
+
+@pytest.fixture(name="action")
+def action_fixture(session: Session):
+    action = Action(arm_id=TEST_ARM_ID,
+            environment_id=TEST_ENVIRONMENT_ID,
+            bandit_state=BanditState.EXPLORE.value,
+    )
+    session.add(action)
+    session.commit()
+    session.refresh(action)
+    yield action
+    session.delete(action)
+    session.commit()
 
 
 @pytest.fixture(name="admin_user")

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, select, and_
-from typing import Optional
+from typing import Optional, List
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
@@ -16,6 +16,7 @@ from maybee_backend.models.core_models import (
     Action,
     Arm,
     Observation,
+    ObservationCreate,
     AvgRewardsPerArm,
     update_average_rewards_per_arm
 )
@@ -554,7 +555,7 @@ async def act(
 
 
 @router.post(
-    "/environments/{environment_id}/observations",
+    "/environments/{environment_id}/observations/",
     tags=[],
 )
 async def create_observation(
@@ -578,10 +579,32 @@ async def create_observation(
         session.commit()
         session.refresh(observation)
         return observation
-
-    if current_user.is_admin:
-        return _create_observation()
-    raise_error_if_user_doesnt_have_link_to_environment(
-        user_id=current_user.user_id, environment_id=environment_id, session=session
-    )
+    
     return _create_observation()
+
+
+
+@router.post(
+    "/environments/{environment_id}/observations/batch/",
+    tags=[],
+)
+async def create_observations(
+    observations: List[ObservationCreate],
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """
+    Create an observation of the outcome of a given action and update the avg rewards table.
+    """
+
+    def _create_observations():
+        db_observations = []
+        for entry in observations:
+            observation = Observation(environment_id=entry.environment_id, arm_id=entry.arm_id, action_id=entry.action_id, event_datetime=entry.event_datetime, reward=entry.reward) 
+            session.add(observations)
+            db_observations.append(observation)
+        session.commit()
+        session.refresh_all(db_observations)
+        return db_observations
+        
+    return _create_observations()
