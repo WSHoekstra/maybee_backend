@@ -1,22 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pytest
-from fastapi import Depends
-from maybee_backend.database import get_session
 from sqlmodel import Session
 from unittest.mock import patch
 from maybee_backend.bandits.epsilon_greedy import EpsilonGreedyBandit
 from maybee_backend.models.core_models import BanditState, AvgRewardsPerArm
 
 
-def test_epsilon_greedy_bandit_initialization(session: Session = Depends(get_session)):
+def test_epsilon_greedy_bandit_initialization(session: Session):
     bandit = EpsilonGreedyBandit(session=session, environment_id=1)
     assert isinstance(bandit, EpsilonGreedyBandit)
     assert bandit.environment_id == 1
 
 
 def test_epsilon_greedy_bandit_choose_arm_exploit(
-    session: Session = Depends(get_session),
+    session: Session,
 ):
     bandit = EpsilonGreedyBandit(session=session, environment_id=1, epsilon=0.1)
 
@@ -45,7 +43,7 @@ def test_epsilon_greedy_bandit_choose_arm_exploit(
 
 
 def test_epsilon_greedy_bandit_choose_arm_explore(
-    session: Session = Depends(get_session),
+    session: Session,
 ):
     bandit = EpsilonGreedyBandit(session=session, environment_id=1, epsilon=0.05)
 
@@ -88,7 +86,7 @@ def test_epsilon_greedy_bandit_choose_arm_explore(
 #     assert bandit_state == BanditState.EXPLOIT
 
 
-def test_epsilon_greedy_bandit_no_rewards(session: Session = Depends(get_session)):
+def test_epsilon_greedy_bandit_no_rewards(session: Session):
     bandit = EpsilonGreedyBandit(session=session, environment_id=1, epsilon=0.1)
 
     # Mock get_average_rewards_per_arm to return empty list
