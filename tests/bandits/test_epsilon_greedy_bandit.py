@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pytest
-from fastapi import Depends
-from maybee_backend.database import get_session
 from sqlmodel import Session
 from unittest.mock import patch
 from maybee_backend.bandits.epsilon_greedy import EpsilonGreedyBandit

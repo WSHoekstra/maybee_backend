@@ -20,9 +20,7 @@ from maybee_backend.models.core_models import (
     update_average_rewards_per_arm
 )
 from maybee_backend.database import get_session
-from maybee_backend.models.get_average_rewards_per_arm import (
-    get_average_rewards_per_arm as query_average_rewards_per_arm,
-)
+from maybee_backend.bandits.get_bandit import environment_bandit_config_to_bandit_mapping
 from maybee_backend.bandits.epsilon_greedy import EpsilonGreedyBandit
 from maybee_backend.api.sorting_mode import SortingMode
 from maybee_backend.models.user_models import (
@@ -464,7 +462,7 @@ async def get_observations(
 
 
 @router.get(
-    "/environments/{environment_id}/arms/average_rewards",
+    "/environments/{environment_id}/arms/average_rewards/",
     tags=[],
 )
 async def get_average_rewards_per_arm(
@@ -475,12 +473,17 @@ async def get_average_rewards_per_arm(
     """
     For a given environment, get the average rewards for each arm
     """
+    
+    def _get_average_rewards_per_arm():
+        sql = select(AvgRewardsPerArm).where(AvgRewardsPerArm.environment_id == environment_id)
+        return session.exec(sql).all()
+    
     if current_user.is_admin:
-        return query_average_rewards_per_arm(session=session, environment_id=environment_id)
+        return _get_average_rewards_per_arm()
     raise_error_if_user_doesnt_have_link_to_environment(
         user_id=current_user.user_id, environment_id=environment_id, session=session
     )
-    return query_average_rewards_per_arm(session=session, environment_id=environment_id)
+    return _get_average_rewards_per_arm()
 
 
 @router.get(
@@ -526,9 +529,9 @@ async def act(
     def _act():
         sql = select(Environment).where(Environment.environment_id == environment_id)
         environment = session.exec(sql).first()
-
-        bandit_classes = {"epsilon_greedy": EpsilonGreedyBandit}
-        bandit_class = bandit_classes.get(environment.bandit_type, EpsilonGreedyBandit)
+        
+        bandit_class = environment_bandit_config_to_bandit_mapping.get(environment.bandit_type, 
+                                                                       EpsilonGreedyBandit)
 
         bandit = bandit_class(environment_id=environment_id, session=session)
         bandit_state, arm_id = bandit.choose_arm()

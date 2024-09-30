@@ -9,14 +9,15 @@ from tests.statics import TEST_ENVIRONMENT_ID, TEST_USER_USERNAME, TEST_USER_PAS
 
 
 # Test get avg rewards with authentication -> should succeed
-@pytest.mark.usefixtures("user", "environment", "arm", "avgrewardsperarm")
+@pytest.mark.usefixtures("user", "environment", "userenvironmentlink", "arm", "avgrewardsperarm")
 def test_get_avg_rewards_per_arm_authenticated(client):
     token = get_auth_token(
         client=client, username=TEST_USER_USERNAME, password=TEST_USER_PASSWORD
     )
     response = client.get(
-        f"/environments/{TEST_ENVIRONMENT_ID}/arms/average_rewards", headers={"Authorization": f"Bearer {token}"}
+        f"/environments/{TEST_ENVIRONMENT_ID}/arms/average_rewards/", headers={"Authorization": f"Bearer {token}"}
     )
+    print(response.content)
     assert response.status_code == 200
     assert isinstance(response.json(), list)
     response_data = response.json()
