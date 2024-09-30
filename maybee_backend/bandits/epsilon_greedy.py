@@ -40,7 +40,9 @@ class EpsilonGreedyBandit(Bandit):
         else:
             bandit_state = BanditState.EXPLORE
             avg_rewards_per_arm = get_average_rewards_per_arm(
-                self.environment_id, replace_null_rewards_with_zeros=True
+                session=self.session,
+                environment_id=self.environment_id, 
+                replace_null_rewards_with_zeros=True
             )
             arm = sorted(
                 avg_rewards_per_arm,

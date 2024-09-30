@@ -12,14 +12,22 @@ from tests.statics import (
     )
 
 
-# Test health endpoint
+def get_auth_token(client: TestClient, username: str, password: str):
+    response = client.post(
+        "/users/token",
+        data={username_field: username, password_field: password},
+    )
+    return response.json()["access_token"]
+
+
+# Test health endpoint -> should suceed
 def test_health(client: TestClient):
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
-# Test user registration
+# Test user registration -> should succeed
 def test_create_user(client: TestClient):
     response = client.post(
         "/users/register/",
@@ -40,6 +48,7 @@ def test_create_user(client: TestClient):
     ), f"Expected username '{TEST_USER_FOR_USER_CREATION_ENDPOINT_TEST_USERNAME}', but got: {response.json().get(username_field)}"
 
 
+# Test getting an auth token -> should succeed
 @pytest.mark.usefixtures("user")
 def test_get_auth_token(client: TestClient):
     response = client.post(
@@ -48,11 +57,3 @@ def test_get_auth_token(client: TestClient):
     )
     assert response.status_code == 200
     assert response.json().get("access_token") is not None
-
-
-def get_auth_token(client: TestClient, username: str, password: str):
-    response = client.post(
-        "/users/token",
-        data={username_field: username, password_field: password},
-    )
-    return response.json()["access_token"]
