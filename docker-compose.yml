@@ -25,6 +25,23 @@ services:
       ADMIN_PASSWORD: admin
     networks:
       - mynetwork
+  redis-cache:
+    image: redis:alpine
+    hostname: redis-cache
+    container_name: redis-cache
+    restart: on-failure
+    ports:
+      - '6379:6379'
+    command: redis-server
+    volumes:
+      - cache:/data
+    networks:
+      - mynetwork 
+
+volumes:
+  cache:
+    driver: local
+
 
 networks:
   mynetwork:
