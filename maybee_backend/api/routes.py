@@ -62,6 +62,18 @@ def raise_no_access_to_environment_exception(environment_id: int) -> None:
     )
 
 
+def get_environment_if_exists(session: Session, environment_id: int) -> None:
+    sql = select(Environment).where(Environment.environment_id == environment_id)
+    environment = session.exec(sql).first()
+    if not environment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Environment with id ({environment_id}) does not exist.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return environment
+
+
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
@@ -262,14 +274,7 @@ async def update_environment(
     if not current_user.is_admin:
         raise_user_is_not_an_admin_exception()
 
-    sql = select(Environment).where(Environment.environment_id == environment_id)
-    environment = session.exec(sql).first()
-
-    if not environment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Environment with id {environment_id} not found",
-        )
+    environment = get_environment_if_exists(session=session, environment_id=environment_id)
 
     if environment_description is not None:
         environment.environment_description = environment_description
@@ -293,8 +298,7 @@ async def delete_environment(
     """
 
     def _delete_environment():
-        sql = select(Environment).where(Environment.environment_id == environment_id)
-        environment = session.exec(sql).first()
+        environment = get_environment_if_exists(session=session, environment_id=environment_id)
         session.delete(environment)
         session.commit()
 
@@ -313,9 +317,12 @@ async def get_arms(
     Return a list of arms associated with a given environment.
     """
     if current_user.is_admin:
+        _ = get_environment_if_exists(session=session, environment_id=environment_id)
+
         sql = select(Arm).where(Arm.environment_id == environment_id)
         return session.exec(sql).all()
     else:
+        _ = get_environment_if_exists(session=session, environment_id=environment_id)
         sql = (
             select(Arm)
             .join(
@@ -338,9 +345,11 @@ async def get_arm(
     Return a list of arms associated with a given environment.
     """
     if current_user.is_admin:
+        _ = get_environment_if_exists(session=session, environment_id=environment_id)
         sql = select(Arm).where(Arm.environment_id == environment_id).where(Arm.arm_id == arm_id)
         return session.exec(sql).first()
     else:
+        _ = get_environment_if_exists(session=session, environment_id=environment_id)
         sql = (
             select(Arm)
             .join(
@@ -369,6 +378,7 @@ async def create_arm(
         """
         Create the arm in the db
         """
+        _ = get_environment_if_exists(session=session, environment_id=environment_id)
         arm = Arm(
             environment_id=environment_id,
             arm_description=arm_description,
@@ -398,6 +408,7 @@ async def create_arm(
 
 @router.delete("/environments/{environment_id}/arms/{arm_id}", tags=[])
 async def delete_arm(
+    environment_id: int,
     arm_id: int,
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
@@ -410,6 +421,7 @@ async def delete_arm(
         """
         Delete the arm in the db
         """
+        _ = get_environment_if_exists(session=session, environment_id=environment_id)
         sql = select(Arm).where(Arm.arm_id == arm_id)
         arm = session.exec(sql).first()
         session.delete(arm)
@@ -443,6 +455,7 @@ async def get_observations(
     """
 
     def _get_observations():
+        _ = get_environment_if_exists(session=session, environment_id=environment_id)
         sql = select(Observation).where(Observation.environment_id == environment_id)
         if sorting_mode == SortingMode.EARLIEST:
             sql = sql.order_by(Observation.event_datetime.asc())
@@ -476,6 +489,7 @@ async def get_average_rewards_per_arm(
     """
     
     def _get_average_rewards_per_arm():
+        _ = get_environment_if_exists(session=session, environment_id=environment_id)
         sql = select(AvgRewardsPerArm).where(AvgRewardsPerArm.environment_id == environment_id)
         return session.exec(sql).all()
     
@@ -501,6 +515,7 @@ async def get_actions(
     """
 
     def _get_actions():
+        _ = get_environment_if_exists(session=session, environment_id=environment_id)
         sql = select(Action).where(Action.environment_id == environment_id)
         results = session.exec(sql).all()
         return results
@@ -528,8 +543,7 @@ async def act(
     """
 
     def _act():
-        sql = select(Environment).where(Environment.environment_id == environment_id)
-        environment = session.exec(sql).first()
+        environment = get_environment_if_exists(session=session, environment_id=environment_id)
         
         bandit_class = environment_bandit_config_to_bandit_mapping.get(environment.bandit_type, 
                                                                        EpsilonGreedyBandit)
@@ -571,6 +585,7 @@ async def create_observation(
     """
 
     def _create_observation():
+        _ = get_environment_if_exists(session=session, environment_id=environment_id)
         observation = Observation(
             environment_id=environment_id, action_id=action_id, reward=reward, arm_id=arm_id
         )
@@ -589,6 +604,7 @@ async def create_observation(
     tags=[],
 )
 async def create_observations(
+    environment_id: int,
     observations: List[ObservationCreate],
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
@@ -598,9 +614,23 @@ async def create_observations(
     """
 
     def _create_observations():
+        _ = get_environment_if_exists(session=session, environment_id=environment_id)
+
         db_observations = []
         for entry in observations:
-            observation = Observation(environment_id=entry.environment_id, 
+            # default the environment_id to the param from the url
+            if not entry.environment_id:
+                entry.environment_id = environment_id 
+
+            # raise an exception on conflicting info 
+            if entry.environment_id != environment_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Observations must all have {environment_id=}, received value {entry.environment_id}",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            observation = Observation(environment_id=environment_id, 
                                       arm_id=entry.arm_id, 
                                       action_id=entry.action_id, 
                                       event_datetime=entry.event_datetime, 
