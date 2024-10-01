@@ -191,6 +191,16 @@ class Observation(SQLModel, table=True):
     environment: Environment | None = Relationship(back_populates="observations")
     arm: Arm | None = Relationship(back_populates="observations")
     action: Action | None = Relationship(back_populates="observations")
+    
+
+class ObservationCreate(SQLModel, table=False):
+    environment_id: int | None = Field(
+        default=None, foreign_key="environment.environment_id"
+    )
+    arm_id: int | None = Field(default=None, foreign_key="arm.arm_id")
+    action_id: int | None = Field(default=None, foreign_key="action.action_id")
+    event_datetime: datetime.datetime = Field(default_factory=datetime.datetime.now)
+    reward: float
 
 
 class AvgRewardsPerArm(SQLModel, table=True):
@@ -257,11 +267,15 @@ def update_average_rewards_per_arm(
                                             n_observations=n_new_observations, 
                                             avg_reward=avg_reward_of_new_observations)
     else: # the object already exists
-        avg_rewards_per_arm.n_observations += n_new_observations
-        avg_rewards_per_arm.avg_reward = (
-            (avg_rewards_per_arm.avg_reward * (avg_rewards_per_arm.n_observations - n_new_observations)) + 
-            (avg_reward_of_new_observations * n_new_observations)
-        ) / avg_rewards_per_arm.n_observations
+        if avg_rewards_per_arm.n_observations == 0:
+            avg_rewards_per_arm.n_observations = n_new_observations
+            avg_rewards_per_arm.avg_reward = avg_reward_of_new_observations
+        else:
+            avg_rewards_per_arm.n_observations += n_new_observations
+            avg_rewards_per_arm.avg_reward = (
+                (avg_rewards_per_arm.avg_reward * (avg_rewards_per_arm.n_observations - n_new_observations)) + 
+                (avg_reward_of_new_observations * n_new_observations)
+            ) / avg_rewards_per_arm.n_observations
     
     session.add(avg_rewards_per_arm)
     session.commit()
