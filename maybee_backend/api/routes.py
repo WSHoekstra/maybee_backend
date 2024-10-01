@@ -600,11 +600,16 @@ async def create_observations(
     def _create_observations():
         db_observations = []
         for entry in observations:
-            observation = Observation(environment_id=entry.environment_id, arm_id=entry.arm_id, action_id=entry.action_id, event_datetime=entry.event_datetime, reward=entry.reward) 
-            session.add(observations)
+            observation = Observation(environment_id=entry.environment_id, 
+                                      arm_id=entry.arm_id, 
+                                      action_id=entry.action_id, 
+                                      event_datetime=entry.event_datetime, 
+                                      reward=entry.reward)
+            session.add(observation)
             db_observations.append(observation)
         session.commit()
-        session.refresh_all(db_observations)
+        for observation in db_observations:
+            session.refresh(observation)
         return db_observations
         
     return _create_observations()

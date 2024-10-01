@@ -267,11 +267,15 @@ def update_average_rewards_per_arm(
                                             n_observations=n_new_observations, 
                                             avg_reward=avg_reward_of_new_observations)
     else: # the object already exists
-        avg_rewards_per_arm.n_observations += n_new_observations
-        avg_rewards_per_arm.avg_reward = (
-            (avg_rewards_per_arm.avg_reward * (avg_rewards_per_arm.n_observations - n_new_observations)) + 
-            (avg_reward_of_new_observations * n_new_observations)
-        ) / avg_rewards_per_arm.n_observations
+        if avg_rewards_per_arm.n_observations == 0:
+            avg_rewards_per_arm.n_observations = n_new_observations
+            avg_rewards_per_arm.avg_reward = avg_reward_of_new_observations
+        else:
+            avg_rewards_per_arm.n_observations += n_new_observations
+            avg_rewards_per_arm.avg_reward = (
+                (avg_rewards_per_arm.avg_reward * (avg_rewards_per_arm.n_observations - n_new_observations)) + 
+                (avg_reward_of_new_observations * n_new_observations)
+            ) / avg_rewards_per_arm.n_observations
     
     session.add(avg_rewards_per_arm)
     session.commit()
