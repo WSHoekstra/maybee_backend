@@ -23,6 +23,7 @@ services:
       SECRET_KEY: "secret_key"
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: admin
+      REDIS_HOST: redis://redis-cache:6379
     networks:
       - mynetwork
   redis-cache:

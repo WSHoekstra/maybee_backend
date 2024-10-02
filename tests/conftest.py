@@ -17,6 +17,7 @@ from tests.statics import (TEST_USER_ID, TEST_USER_USERNAME, TEST_USER_PASSWORD,
 class TestingConfig:
     secret_key = "test_secret_key"
     db_uri = "sqlite:///:memory:?check_same_thread=False"
+    redis_host = None
 
 
 def get_test_config():
