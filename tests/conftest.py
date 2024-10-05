@@ -35,6 +35,12 @@ def get_test_session(engine: Engine):
     return Session(engine)
 
 
+async def get_test_cache():
+    redis_instance = await fakeredis.FakeAsyncRedis()
+    yield redis_instance
+    await redis_instance.aclose()
+
+
 @pytest.fixture(autouse=True)
 def override_config(monkeypatch):
     monkeypatch.setattr("maybee_backend.config.Config", TestingConfig)
@@ -62,24 +68,8 @@ def session_fixture():
         config.db_uri, connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     SQLModel.metadata.create_all(engine)
-
     with Session(engine) as session:
         yield session
-
-
-@pytest.fixture
-async def get_test_cache():
-    redis_instance = await fakeredis.create_redis_pool()
-    yield redis_instance
-    redis_instance.close()
-    await redis_instance.wait_closed()
-
-@pytest.fixture
-def cache_fixture(fake_redis):
-    # Override FastAPI's dependency to use fakeredis
-    app.dependency_overrides[get_cache] = lambda: fake_redis
-    yield
-    app.dependency_overrides.clear()
 
 
 @pytest.fixture(name="client", autouse=True)
