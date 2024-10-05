@@ -26,8 +26,7 @@ async def lifespan(app: FastAPI):
     # init cache
     cache = get_cache()
     if cache:
-        log.info(f"Using redis cache {cache=}")
-        app.state.cache = cache
+        log.info(f"Using redis cache {cache}")
     else:
         log.info("Redis cache not configured.")
 

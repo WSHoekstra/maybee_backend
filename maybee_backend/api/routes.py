@@ -3,12 +3,16 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.responses import JSONResponse
+
+from datetime import datetime, timedelta
+from jose import JWTError, jwt
+from redis.asyncio import Redis
 from sqlmodel import Session, select, and_
 from typing import Optional, List
-from jose import JWTError, jwt
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
 
+from maybee_backend.cache import (get_cache, get_cache_key_for_list_of_all_environments, get_cache_key_for_list_of_all_environments_accessible_to_user)
+from maybee_backend.logging import log
 
 from maybee_backend.models.core_models import (
     Environment,
@@ -246,6 +250,7 @@ async def create_environment(
 async def get_environments(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
+    cache: Redis = Depends(get_cache)
 ):
     """
     Return a list of environments
@@ -253,11 +258,27 @@ async def get_environments(
     sql = select(Environment)
 
     if not current_user.is_admin:
+        if cache:
+            cache_key = get_cache_key_for_list_of_all_environments_accessible_to_user(user_id=current_user.user_id)
+            cached_result = await cache.get(cache_key)
+            if cached_result:
+                return cached_result
+
         sql = sql.join(
             UserEnvironmentLink,
             UserEnvironmentLink.environment_id == Environment.environment_id,
         ).where(UserEnvironmentLink.user_id == current_user.user_id)
-    return session.exec(sql).all()
+    if cache:
+        cache_key = get_cache_key_for_list_of_all_environments()
+        cached_result = await cache.get(cache_key)
+        if cached_result:
+            return cached_result
+
+    environments = session.exec(sql).all()
+    await cache.set(cache_key, environments)
+    log.info(f"Setting cache key {cache_key} = {environments}")
+
+    return environments
 
 
 @router.put("/environments/{environment_id}", tags=[])
