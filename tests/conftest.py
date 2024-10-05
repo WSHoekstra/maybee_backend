@@ -3,9 +3,11 @@
 import pytest
 from sqlmodel import Session, create_engine, SQLModel
 from sqlalchemy.engine import Engine
+import fakeredis
 from maybee_backend.main import app
 from fastapi.testclient import TestClient
 from maybee_backend.config import get_config
+from maybee_backend.cache import get_cache
 from maybee_backend.database import get_session
 from sqlmodel.pool import StaticPool
 from maybee_backend.api.routes import get_password_hash
@@ -17,6 +19,8 @@ from tests.statics import (TEST_USER_ID, TEST_USER_USERNAME, TEST_USER_PASSWORD,
 class TestingConfig:
     secret_key = "test_secret_key"
     db_uri = "sqlite:///:memory:?check_same_thread=False"
+    redis_host = None
+    redis_port = None
 
 
 def get_test_config():
@@ -29,6 +33,12 @@ def get_test_engine():
 
 def get_test_session(engine: Engine):
     return Session(engine)
+
+
+async def get_test_cache():
+    redis_instance = await fakeredis.FakeAsyncRedis()
+    yield redis_instance
+    await redis_instance.aclose()
 
 
 @pytest.fixture(autouse=True)
@@ -58,7 +68,6 @@ def session_fixture():
         config.db_uri, connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     SQLModel.metadata.create_all(engine)
-
     with Session(engine) as session:
         yield session
 
@@ -70,6 +79,7 @@ def client_fixture(session: Session):
 
     app.dependency_overrides[get_session] = get_session_override
     app.dependency_overrides[get_config] = get_test_config
+    app.dependency_overrides[get_cache] = get_test_cache
 
     client = TestClient(app)
     yield client

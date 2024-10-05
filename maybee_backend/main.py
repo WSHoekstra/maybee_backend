@@ -7,6 +7,7 @@ from sqlmodel import SQLModel, Session
 
 from maybee_backend.api.routes import router
 from maybee_backend.database import get_engine
+from maybee_backend.cache import get_cache
 from maybee_backend.logging import log, log_level
 from maybee_backend.setup.create_admin_user import create_admin_user
 from maybee_backend.simulations.simulation_environment import (
@@ -18,8 +19,16 @@ log.info(f"{log_level=}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # init db
     engine = get_engine()
     SQLModel.metadata.create_all(engine)
+    
+    # init cache
+    cache = get_cache()
+    if cache:
+        log.info(f"Using redis cache {cache}")
+    else:
+        log.info("Redis cache not configured.")
 
     init_admin_username = os.getenv("ADMIN_USERNAME", None)
     init_admin_user_password = os.getenv("ADMIN_PASSWORD", None)
