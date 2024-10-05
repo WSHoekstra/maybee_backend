@@ -255,11 +255,13 @@ async def get_environments(
     """
     Return a list of environments
     """
+    cache_key = get_cache_key_for_list_of_all_environments_accessible_to_user(user_id=current_user.user_id)
+    
     sql = select(Environment)
-
+    
     if not current_user.is_admin:
         if cache:
-            cache_key = get_cache_key_for_list_of_all_environments_accessible_to_user(user_id=current_user.user_id)
+            
             cached_result = await cache.get(cache_key)
             if cached_result:
                 return cached_result
@@ -275,7 +277,8 @@ async def get_environments(
             return cached_result
 
     environments = session.exec(sql).all()
-    await cache.set(cache_key, environments)
+    if cache:
+        await cache.set(cache_key, environments)
     log.info(f"Setting cache key {cache_key} = {environments}")
 
     return environments

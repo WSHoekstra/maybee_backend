@@ -6,7 +6,7 @@ from redis import asyncio as redis
 from maybee_backend.config import Config, get_config
 
 
-def get_cache(config: Config = Depends(get_config)) -> redis.Redis:
+async def get_cache(config: Config = Depends(get_config)) -> redis.Redis | None:
     """
     If a Redis cache is configured, initialize and return it. 
     Otherwise, return None.
