@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from fastapi import Request, Response, Depends
-from sqlmodel import Session
+from fastapi.encoders import jsonable_encoder
+from sqlmodel import Session, SQLModel
 from redis import asyncio as redis
 from maybee_backend.config import Config, get_config
+import json
 
 
 async def get_cache(config: Config = Depends(get_config)) -> redis.Redis | None:
@@ -31,3 +33,6 @@ def get_cache_key_for_environment(environment_id):
 
 def get_cache_key_for_list_of_actions(environment_id):
     return f"actions:{environment_id}"
+
+def serialize_sqlmodel_list(instances: list[SQLModel]) -> str:
+    return json.dumps([jsonable_encoder(instance) for instance in instances])

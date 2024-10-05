@@ -5,13 +5,14 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.responses import JSONResponse
 
 from datetime import datetime, timedelta
+import json
 from jose import JWTError, jwt
 from redis.asyncio import Redis
 from sqlmodel import Session, select, and_
 from typing import Optional, List
 from passlib.context import CryptContext
 
-from maybee_backend.cache import (get_cache, get_cache_key_for_list_of_all_environments, get_cache_key_for_list_of_all_environments_accessible_to_user)
+from maybee_backend.cache import (get_cache, get_cache_key_for_list_of_all_environments, get_cache_key_for_list_of_all_environments_accessible_to_user, serialize_sqlmodel_list)
 from maybee_backend.logging import log
 
 from maybee_backend.models.core_models import (
@@ -270,12 +271,12 @@ async def get_environments(
     if cache:
         cached_result = await cache.get(cache_key)
         if cached_result:
-            return cached_result
+            return json.loads(cached_result)
 
     environments = session.exec(sql).all()
     
     if cache:
-        await cache.set(cache_key, environments)
+        await cache.set(cache_key, serialize_sqlmodel_list(environments))
     log.info(f"Setting cache key {cache_key} = {environments}")
 
     return environments
