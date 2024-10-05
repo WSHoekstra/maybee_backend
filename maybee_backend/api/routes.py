@@ -257,26 +257,23 @@ async def get_environments(
     """
     cache_key = get_cache_key_for_list_of_all_environments_accessible_to_user(user_id=current_user.user_id)
     
-    sql = select(Environment)
-    
-    if not current_user.is_admin:
-        if cache:
-            
-            cached_result = await cache.get(cache_key)
-            if cached_result:
-                return cached_result
-
-        sql = sql.join(
+    # Check if the user is an admin
+    if current_user.is_admin:
+        sql = select(Environment)
+    else:
+        sql = select(Environment).join(
             UserEnvironmentLink,
             UserEnvironmentLink.environment_id == Environment.environment_id,
         ).where(UserEnvironmentLink.user_id == current_user.user_id)
+
+    # Handle caching
     if cache:
-        cache_key = get_cache_key_for_list_of_all_environments()
         cached_result = await cache.get(cache_key)
         if cached_result:
             return cached_result
 
     environments = session.exec(sql).all()
+    
     if cache:
         await cache.set(cache_key, environments)
     log.info(f"Setting cache key {cache_key} = {environments}")
